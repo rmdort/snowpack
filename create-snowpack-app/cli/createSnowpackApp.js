@@ -22,8 +22,8 @@ function hasPmInstalled(packageManager) {
   }
 }
 
-function validateArgs(args) {
-  const {template, useYarn, usePnpm, force, target, install, _} = yargs(args);
+function validateArgs(args) {  
+  const {template, useYarn, usePnpm, force, target, install, verbose, _} = yargs(args);
   const toInstall = install !== undefined ? install : true;
   if (useYarn && usePnpm) {
     logError('You can not use Yarn and pnpm at the same time.');
@@ -55,6 +55,7 @@ function validateArgs(args) {
     targetDirectoryRelative,
     targetDirectory,
     toInstall,
+    verbose
   };
 }
 
@@ -125,6 +126,7 @@ const {
   toInstall,
   targetDirectoryRelative,
   targetDirectory,
+  verbose
 } = validateArgs(process.argv);
 
 let installer = 'npm';
@@ -144,13 +146,13 @@ const installedTemplate = isLocalTemplate
 
   console.log(`\n  - Using template ${colors.cyan(template)}`);
   console.log(`  - Creating a new project in ${colors.cyan(targetDirectory)}`);
-
+  const verboseArg = verbose ? '--verbose' : ''
   fs.mkdirSync(targetDirectory, {recursive: true});
   await fs.promises.writeFile(path.join(targetDirectory, 'package.json'), `{"name": "my-csa-app"}`);
   // fetch from npm or GitHub if not local (which will be most of the time)
   if (!isLocalTemplate) {
     try {
-      await execa('npm', ['install', template, '--ignore-scripts'], {
+      await execa('npm', ['install', template, '--ignore-scripts', verboseArg], {
         cwd: targetDirectory,
         all: true,
       });
@@ -174,11 +176,11 @@ const installedTemplate = isLocalTemplate
     function installProcess(packageManager) {
       switch (packageManager) {
         case 'npm':
-          return execa('npm', ['install', '--loglevel', 'error'], npmInstallOptions);
+          return execa('npm', ['install', '--loglevel', 'error', verboseArg], npmInstallOptions);
         case 'yarn':
-          return execa('yarn', ['--silent'], npmInstallOptions);
+          return execa('yarn', ['--silent', verboseArg], npmInstallOptions);
         case 'pnpm':
-          return execa('pnpm', ['install', '--reporter=silent'], npmInstallOptions);
+          return execa('pnpm', ['install', '--reporter=silent', verboseArg], npmInstallOptions);
         default:
           throw new Error('Unspecified package installer.');
       }
